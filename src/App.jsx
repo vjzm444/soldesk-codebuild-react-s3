@@ -8,7 +8,7 @@ export default function App() {
       <section className="hero">
         <div className="badge">AWS CodeBuild 실습</div>
 
-        <h1>🚀 CodeBuild로 React 앱을 S3 + CloudFront에 자동 배포</h1>
+        <h1>🚀 CodeBuild로 React 앱을 S3 + CloudFront에 자동 배포2222333</h1>
 
         <p className="subtitle">
           이 페이지는 Docker 컨테이너가 아니라 정적 웹 파일로 빌드되어 S3에 배포됩니다.
