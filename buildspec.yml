@@ -9,29 +9,29 @@ phases:
     runtime-versions:
       nodejs: 20
     commands:
-      - echo "📦 install 단계 시작"
-      - echo "Node.js version:"
+      - 'echo "📦 install 단계 시작"'
+      - 'echo "Node.js version:"'
       - node -v
-      - echo "npm version:"
+      - 'echo "npm version:"'
       - npm -v
       - npm ci
 
   pre_build:
     commands:
-      - echo "🧪 pre_build 단계 시작"
+      - 'echo "🧪 pre_build 단계 시작"'
       - npm test
 
   build:
     commands:
-      - echo "🛠️ build 단계 시작"
+      - 'echo "🛠️ build 단계 시작"'
       - npm run build
-      - echo "dist 폴더 확인"
+      - 'echo "dist 폴더 확인"'
       - ls -al dist
 
   post_build:
     commands:
-      - echo "🚀 post_build 단계 시작"
-      - echo "S3 배포 버킷: $S3_DEPLOY_BUCKET"
+      - 'echo "🚀 post_build 단계 시작"'
+      - 'echo "S3 배포 버킷: $S3_DEPLOY_BUCKET"'
       - aws s3 sync dist/ s3://$S3_DEPLOY_BUCKET --delete
       - |
         if [ -n "$CLOUDFRONT_DISTRIBUTION_ID" ]; then
@@ -42,7 +42,7 @@ phases:
         else
           echo "CloudFront 배포 ID가 없으므로 캐시 무효화는 건너뜁니다."
         fi
-      - echo "✅ 배포 완료"
+      - 'echo "✅ 배포 완료"'
 
 artifacts:
   files:
