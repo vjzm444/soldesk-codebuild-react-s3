@@ -1,0 +1,54 @@
+version: 0.2
+
+env:
+  variables:
+    APP_NAME: "soldesk-codebuild-react-s3"
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - echo "📦 install 단계 시작"
+      - echo "Node.js version:"
+      - node -v
+      - echo "npm version:"
+      - npm -v
+      - npm ci
+
+  pre_build:
+    commands:
+      - echo "🧪 pre_build 단계 시작"
+      - npm test
+
+  build:
+    commands:
+      - echo "🛠️ build 단계 시작"
+      - npm run build
+      - echo "dist 폴더 확인"
+      - ls -al dist
+
+  post_build:
+    commands:
+      - echo "🚀 post_build 단계 시작"
+      - echo "S3 배포 버킷: $S3_DEPLOY_BUCKET"
+      - aws s3 sync dist/ s3://$S3_DEPLOY_BUCKET --delete
+      - |
+        if [ -n "$CLOUDFRONT_DISTRIBUTION_ID" ]; then
+          echo "🌐 CloudFront 캐시 무효화 시작: $CLOUDFRONT_DISTRIBUTION_ID"
+          aws cloudfront create-invalidation \
+            --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
+            --paths "/*"
+        else
+          echo "CloudFront 배포 ID가 없으므로 캐시 무효화는 건너뜁니다."
+        fi
+      - echo "✅ 배포 완료"
+
+artifacts:
+  files:
+    - "**/*"
+  base-directory: dist
+
+cache:
+  paths:
+    - "/root/.npm/**/*"
