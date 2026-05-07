@@ -1,52 +1,57 @@
 export default function App() {
-  const buildTime = new Date().toLocaleString("ko-KR", {
+  const now = new Date().toLocaleString("ko-KR", {
     timeZone: "Asia/Seoul"
   });
 
   return (
     <main className="page">
-      <section className="hero">
-        <div className="badge">AWS CodeBuild 실습</div>
+      <section className="panel">
+        <div className="badge">AWS CodeBuild + CodeDeploy</div>
 
-        <h1>🚀 CodeBuild로 React 앱을 S3 + CloudFront에 자동 배포2222333</h1>
+        <h1>🚀 EC2 Nginx 배포 성공</h1>
 
         <p className="subtitle">
-          이 페이지는 Docker 컨테이너가 아니라 정적 웹 파일로 빌드되어 S3에 배포됩니다.
+          이 페이지는 CodeBuild에서 React 앱을 빌드한 뒤,
+          CodeDeploy가 EC2 인스턴스의 Nginx 웹 루트에 배포한 결과입니다.
         </p>
 
-        <div className="cards">
-          <div className="card">
+        <div className="grid">
+          <article>
             <h2>🧬 Source</h2>
             <p>GitHub Repository</p>
-          </div>
+          </article>
 
-          <div className="card">
+          <article>
             <h2>🛠️ Build</h2>
             <p>AWS CodeBuild</p>
-          </div>
+          </article>
 
-          <div className="card">
-            <h2>🪣 Deploy</h2>
-            <p>Amazon S3</p>
-          </div>
+          <article>
+            <h2>🪣 Artifact</h2>
+            <p>Amazon S3 ZIP</p>
+          </article>
 
-          <div className="card">
-            <h2>🌐 Delivery</h2>
-            <p>Amazon CloudFront</p>
-          </div>
+          <article>
+            <h2>🚀 Deploy</h2>
+            <p>AWS CodeDeploy</p>
+          </article>
+
+          <article>
+            <h2>🖥️ Server</h2>
+            <p>Amazon EC2</p>
+          </article>
+
+          <article>
+            <h2>🌐 Web</h2>
+            <p>Nginx Static Hosting</p>
+          </article>
         </div>
 
         <div className="flow">
-          <span>GitHub</span>
-          <strong>→</strong>
-          <span>CodeBuild</span>
-          <strong>→</strong>
-          <span>S3</span>
-          <strong>→</strong>
-          <span>CloudFront</span>
+          GitHub <span>→</span> CodeBuild <span>→</span> S3 <span>→</span> CodeDeploy <span>→</span> EC2
         </div>
 
-        <p className="time">빌드 확인용 시간: {buildTime}</p>
+        <p className="time">빌드 확인용 시간: {now}</p>
       </section>
     </main>
   );

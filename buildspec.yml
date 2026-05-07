@@ -2,52 +2,96 @@ version: 0.2
 
 env:
   variables:
-    APP_NAME: "soldesk-codebuild-react-s3"
+    APP_NAME: "soldesk-codebuild-codedeploy-react"
 
 phases:
   install:
     runtime-versions:
       nodejs: 20
     commands:
-      - 'echo "📦 install 단계 시작"'
-      - 'echo "Node.js version:"'
+      - echo "📦 install 단계 시작"
       - node -v
-      - 'echo "npm version:"'
       - npm -v
+      - |
+        if command -v dnf >/dev/null 2>&1; then
+          dnf install -y zip
+        elif command -v yum >/dev/null 2>&1; then
+          yum install -y zip
+        else
+          echo "dnf/yum을 찾지 못했습니다. zip이 이미 있는지 확인합니다."
+        fi
       - npm ci
 
   pre_build:
     commands:
-      - 'echo "🧪 pre_build 단계 시작"'
+      - echo "🧪 pre_build 단계 시작"
       - npm test
+      - echo "AWS 계정 확인"
+      - aws sts get-caller-identity
 
   build:
     commands:
-      - 'echo "🛠️ build 단계 시작"'
+      - echo "🛠️ build 단계 시작"
       - npm run build
-      - 'echo "dist 폴더 확인"'
+      - echo "dist 폴더 확인"
       - ls -al dist
 
   post_build:
     commands:
-      - 'echo "🚀 post_build 단계 시작"'
-      - 'echo "S3 배포 버킷: $S3_DEPLOY_BUCKET"'
-      - aws s3 sync dist/ s3://$S3_DEPLOY_BUCKET --delete
+      - 'echo "📦 CodeDeploy 배포 번들 생성 시작"'
+      - COMMIT_ID=$(echo ${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual} | cut -c 1-8)
+      - BUILD_NO=${CODEBUILD_BUILD_NUMBER:-0}
+      - REVISION_KEY="revisions/soldesk-react-ec2-${COMMIT_ID}-${BUILD_NO}.zip"
+      - rm -rf deploy_bundle app.zip
+      - mkdir -p deploy_bundle
+      - cp -r dist deploy_bundle/dist
+      - cp appspec.yml deploy_bundle/appspec.yml
+      - cp -r scripts deploy_bundle/scripts
+
+      # Windows에서 작성된 .sh 파일의 CRLF 줄바꿈 제거
+      - 'echo "🧹 Windows CRLF 줄바꿈 제거"'
+      - sed -i 's/\r$//' deploy_bundle/scripts/*.sh
+
+      # CodeDeploy Hook Script 실행 권한 부여
+      - 'echo "🔐 CodeDeploy 스크립트 실행 권한 부여"'
+      - chmod +x deploy_bundle/scripts/*.sh
+
+      # 배포 번들 내부 파일 확인
+      - 'echo "📁 배포 번들 파일 구조 확인"'
+      - find deploy_bundle -maxdepth 3 -type f | sort
+      - ls -al deploy_bundle/scripts
+
+      - cd deploy_bundle
+      - zip -r ../app.zip .
+      - cd ..
+
+      - 'echo "🪣 S3에 배포 ZIP 업로드"'
+      - aws s3 cp app.zip s3://$ARTIFACT_BUCKET/$REVISION_KEY
+
+      - 'echo "🚀 CodeDeploy 배포 생성"'
       - |
-        if [ -n "$CLOUDFRONT_DISTRIBUTION_ID" ]; then
-          echo "🌐 CloudFront 캐시 무효화 시작: $CLOUDFRONT_DISTRIBUTION_ID"
-          aws cloudfront create-invalidation \
-            --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
-            --paths "/*"
-        else
-          echo "CloudFront 배포 ID가 없으므로 캐시 무효화는 건너뜁니다."
-        fi
-      - 'echo "✅ 배포 완료"'
+        DEPLOYMENT_ID=$(aws deploy create-deployment \
+          --application-name "$CODEDEPLOY_APP_NAME" \
+          --deployment-group-name "$CODEDEPLOY_DEPLOYMENT_GROUP" \
+          --deployment-config-name "${DEPLOYMENT_CONFIG_NAME:-CodeDeployDefault.OneAtATime}" \
+          --description "CodeBuild triggered deployment - build ${CODEBUILD_BUILD_NUMBER}" \
+          --s3-location bucket=$ARTIFACT_BUCKET,key=$REVISION_KEY,bundleType=zip \
+          --query deploymentId \
+          --output text)
+        echo "생성된 CodeDeploy Deployment ID: $DEPLOYMENT_ID"
+        echo "$DEPLOYMENT_ID" > deployment-id.txt
+
+      - 'echo "⏳ CodeDeploy 배포 완료 대기"'
+      - aws deploy wait deployment-successful --deployment-id $(cat deployment-id.txt)
+
+      - 'echo "✅ CodeDeploy 배포 성공"'
+      - aws deploy get-deployment --deployment-id $(cat deployment-id.txt) --query "deploymentInfo.[deploymentId,status,completeTime]" --output table
 
 artifacts:
   files:
-    - "**/*"
-  base-directory: dist
+    - app.zip
+    - deployment-id.txt
+  discard-paths: yes
 
 cache:
   paths:
