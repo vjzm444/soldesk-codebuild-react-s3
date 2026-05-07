@@ -8,7 +8,7 @@ export default function App() {
       <section className="panel">
         <div className="badge">AWS CodeBuild + CodeDeploy</div>
 
-        <h1>🚀 EC2 Nginx 배포 성공</h1>
+        <h1>🚀 EC2 Nginx 배포 성공123123123</h1>
 
         <p className="subtitle">
           이 페이지는 CodeBuild에서 React 앱을 빌드한 뒤,
